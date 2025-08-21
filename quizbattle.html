@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adu Kecerdasan - Template</title>
+    <title>Quiz Battle Tournament - Template</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
@@ -271,7 +272,7 @@
                         1. Download template Excel di bawah ini<br>
                         2. Isi soal sesuai format yang disediakan<br>
                         3. Upload file Excel yang sudah diisi<br>
-                        4. Soal akan otomatis terbaca untuk semua babak permainan
+                        4. Soal akan otomatis terbaca untuk semua babak tournament
                     </p>
                     <div class="flex flex-wrap gap-3 mb-4">
                         <button onclick="downloadTemplate()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all flex items-center gap-2">
@@ -384,7 +385,7 @@
         <!-- Tournament Progress -->
         <div id="tournamentProgress" class="hidden max-w-4xl mx-auto mb-6">
             <div class="bg-white rounded-xl shadow-lg p-4">
-                <h3 class="text-lg font-bold text-center mb-3">🏆 Progress Permainan</h3>
+                <h3 class="text-lg font-bold text-center mb-3">🏆 Progress Tournament</h3>
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-medium">Penyisihan</span>
                     <span class="text-xs font-medium">Semifinal</span>
@@ -471,7 +472,7 @@
             
             <!-- Tournament Progress in Modal -->
             <div class="mb-6">
-                <h3 class="text-lg font-bold text-center mb-3">🏆 Progress Permainan</h3>
+                <h3 class="text-lg font-bold text-center mb-3">🏆 Progress Tournament</h3>
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-medium">Penyisihan</span>
                     <span class="text-xs font-medium">Semifinal</span>
@@ -520,12 +521,12 @@
     <!-- Results Screen -->
     <div id="resultsScreen" class="hidden container mx-auto p-6">
         <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800">🏆 Hasil Akhir Adu Kecerdasan</h2>
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">🏆 Hasil Akhir Tournament</h2>
             <div id="winnerAnnouncement" class="text-2xl font-bold mb-6"></div>
             
             <!-- Tournament Summary -->
             <div id="tournamentSummary" class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
-                <h3 class="text-xl font-bold mb-4">📈 Ringkasan Permainan</h3>
+                <h3 class="text-xl font-bold mb-4">📈 Ringkasan Tournament</h3>
                 <div id="summaryStats" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <!-- Tournament stats will be shown here -->
                 </div>
@@ -552,20 +553,19 @@
             return arabicRegex.test(text);
         }
 
-        // Check if text is predominantly Arabic (more than 30% Arabic characters)
-        function isPredominantlyArabic(text) {
+        // Check if text contains any Arabic characters (more lenient)
+        function hasArabicText(text) {
             if (!text || text.length === 0) return false;
-            
-            const arabicChars = text.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g);
-            const arabicCount = arabicChars ? arabicChars.length : 0;
-            const totalChars = text.replace(/\s/g, '').length; // Exclude spaces
-            
-            return totalChars > 0 && (arabicCount / totalChars) > 0.3;
+            return containsArabic(text);
         }
 
-        // Apply Arabic styling to text elements - only if predominantly Arabic
+        // Apply Arabic styling to text elements - if contains any Arabic
         function applyArabicStyling(element, text, type = 'text') {
-            if (isPredominantlyArabic(text)) {
+            if (hasArabicText(text)) {
+                // Remove existing Arabic classes first
+                element.classList.remove('arabic-question', 'arabic-answer', 'arabic-text');
+                
+                // Add appropriate Arabic class
                 if (type === 'question') {
                     element.classList.add('arabic-question');
                 } else if (type === 'answer') {
@@ -573,9 +573,37 @@
                 } else {
                     element.classList.add('arabic-text');
                 }
+                
+                // Force font family directly as well
+                if (type === 'question') {
+                    element.style.fontFamily = "'Amiri', serif";
+                    element.style.fontSize = "1.8em";
+                    element.style.lineHeight = "2";
+                    element.style.direction = "rtl";
+                    element.style.textAlign = "center";
+                    element.style.fontWeight = "700";
+                } else if (type === 'answer') {
+                    element.style.fontFamily = "'Amiri', serif";
+                    element.style.fontSize = "1.4em";
+                    element.style.lineHeight = "1.6";
+                    element.style.direction = "rtl";
+                    element.style.textAlign = "right";
+                } else {
+                    element.style.fontFamily = "'Amiri', serif";
+                    element.style.fontSize = "1.5em";
+                    element.style.lineHeight = "1.8";
+                    element.style.direction = "rtl";
+                    element.style.textAlign = "right";
+                }
             } else {
-                // Remove Arabic classes if text is not predominantly Arabic
+                // Remove Arabic classes and styles if no Arabic text
                 element.classList.remove('arabic-question', 'arabic-answer', 'arabic-text');
+                element.style.fontFamily = "";
+                element.style.fontSize = "";
+                element.style.lineHeight = "";
+                element.style.direction = "";
+                element.style.textAlign = "";
+                element.style.fontWeight = "";
             }
         }
 
@@ -676,7 +704,7 @@
             // Dynamic main title with "AKU SUKA BELAJAR" format
             let mainTitle = '';
             if (subject && subject.toLowerCase() !== 'quiz battle') {
-                mainTitle = `AYO BELAJAR ${subject.toUpperCase()} BERSAMA`;
+                mainTitle = `AKU SUKA BELAJAR ${subject.toUpperCase()}`;
             } else {
                 mainTitle = 'QUIZ BATTLE';
             }
@@ -756,7 +784,7 @@
             }
         }
 
-        function loadFromLocalStorage() {
+        async function loadFromLocalStorage() {
             try {
                 // Load game settings
                 const savedSettings = localStorage.getItem(STORAGE_KEYS.GAME_SETTINGS);
@@ -832,7 +860,22 @@
                     const restoredState = JSON.parse(savedGameState);
                     
                     // Show restore option to user
-                    const shouldRestore = confirm('🔄 Ditemukan game yang sedang berlangsung!\n\nApakah Anda ingin melanjutkan game tersebut?\n\n✅ Ya - Lanjutkan game\n❌ Tidak - Mulai baru');
+                    const result = await Swal.fire({
+                        icon: 'question',
+                        title: '🔄 Game Tersimpan Ditemukan!',
+                        html: `
+                            <div class="text-center">
+                                <p class="mb-4">Ditemukan game yang sedang berlangsung!</p>
+                                <p class="text-gray-600">Apakah Anda ingin melanjutkan game tersebut?</p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: '✅ Ya - Lanjutkan Game',
+                        cancelButtonText: '❌ Tidak - Mulai Baru',
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#ef4444'
+                    });
+                    const shouldRestore = result.isConfirmed;
                     
                     if (shouldRestore) {
                         restoreGameState(restoredState);
@@ -880,12 +923,26 @@
                 
                 // Show notification
                 setTimeout(() => {
-                    alert('🎮 Game berhasil dipulihkan!\n\nAnda dapat melanjutkan dari posisi terakhir.');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '🎮 Game Berhasil Dipulihkan!',
+                        text: 'Anda dapat melanjutkan dari posisi terakhir.',
+                        confirmButtonText: 'Lanjutkan',
+                        confirmButtonColor: '#10b981',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
                 }, 500);
                 
             } catch (error) {
                 console.error('❌ Error memulihkan game state:', error);
-                alert('❌ Gagal memulihkan game. Silakan mulai game baru.');
+                Swal.fire({
+                    icon: 'error',
+                    title: '❌ Gagal Memulihkan Game',
+                    text: 'Silakan mulai game baru.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#ef4444'
+                });
                 localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
             }
         }
@@ -1407,7 +1464,13 @@
             gameState.selectedCategories = Array.from(checkboxes).map(cb => cb.value);
 
             if (gameState.selectedCategories.length === 0) {
-                alert('Pilih minimal satu kategori soal!');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Kategori Belum Dipilih',
+                    text: 'Pilih minimal satu kategori soal!',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3b82f6'
+                });
                 return;
             }
 
@@ -1434,17 +1497,33 @@
             };
             
             // Show tournament intro
-            alert('🏆 MODE TOURNAMENT DIMULAI! 🏆\n\n' +
-                  '📋 Format Tournament:\n\n' +
-                  '🎯 PENYISIHAN: 20 soal mudah (10-15 poin)\n' +
-                  '⚡ SEMIFINAL: 15 soal sedang (15-25 poin)\n' +
-                  '🔥 FINAL: 10 soal sulit (25-50 poin)\n' +
-                  '👑 SUPER FINAL: 5 soal ultimate (hanya jika seri)\n\n' +
-                  '📊 Sistem Eliminasi:\n' +
-                  '• Setiap babak: 30% tim dengan skor terendah tereliminasi\n' +
-                  '• Super Final hanya muncul jika ada skor seri di Final\n' +
-                  '• Jawaban salah mengurangi skor!\n\n' +
-                  'Bersiaplah untuk kompetisi yang sengit! 🚀');
+            Swal.fire({
+                icon: 'success',
+                title: '🏆 MODE TOURNAMENT DIMULAI!',
+                html: `
+                    <div class="text-left">
+                        <h4 class="font-bold text-lg mb-3">📋 Format Tournament:</h4>
+                        <ul class="mb-4 space-y-1">
+                            <li>🎯 <strong>PENYISIHAN:</strong> 20 soal mudah (10-15 poin)</li>
+                            <li>⚡ <strong>SEMIFINAL:</strong> 15 soal sedang (15-25 poin)</li>
+                            <li>🔥 <strong>FINAL:</strong> 10 soal sulit (25-50 poin)</li>
+                            <li>👑 <strong>SUPER FINAL:</strong> 5 soal ultimate (hanya jika seri)</li>
+                        </ul>
+                        
+                        <h4 class="font-bold text-lg mb-3">📊 Sistem Eliminasi:</h4>
+                        <ul class="space-y-1">
+                            <li>• Setiap babak: 30% tim dengan skor terendah tereliminasi</li>
+                            <li>• Super Final hanya muncul jika ada skor seri di Final</li>
+                            <li>• Jawaban salah mengurangi skor!</li>
+                        </ul>
+                        
+                        <p class="mt-4 text-center font-bold text-blue-600">Bersiaplah untuk kompetisi yang sengit! 🚀</p>
+                    </div>
+                `,
+                confirmButtonText: 'Mulai Tournament!',
+                confirmButtonColor: '#3b82f6',
+                width: '600px'
+            });
             
             startRound();
         }
@@ -2026,7 +2105,21 @@
                         gameState.roundDescriptions.push('5 Soal Ultimate (50 Poin)');
                         gameState.questionsPerRound.push(5);
                         
-                        alert('🔥 SKOR SERI! 🔥\n\nSuper Final akan dimulai untuk menentukan juara!\n\n👑 5 Soal Ultimate (50 poin)\n⚡ Hanya tim yang seri yang akan bertanding!');
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '🔥 SKOR SERI!',
+                            html: `
+                                <div class="text-center">
+                                    <p class="text-lg mb-4">Super Final akan dimulai untuk menentukan juara!</p>
+                                    <div class="bg-yellow-50 p-4 rounded-lg mb-4">
+                                        <p class="font-bold text-yellow-800">👑 5 Soal Ultimate (50 poin)</p>
+                                        <p class="text-yellow-700">⚡ Hanya tim yang seri yang akan bertanding!</p>
+                                    </div>
+                                </div>
+                            `,
+                            confirmButtonText: 'Lanjut ke Super Final!',
+                            confirmButtonColor: '#f59e0b'
+                        });
                         
                         // Eliminate non-tied teams
                         gameState.teams.forEach(team => {
@@ -2058,10 +2151,8 @@
             // Don't eliminate if only 2 teams left or in Super Final
             if (activeTeams.length <= 2 || gameState.currentRound >= 4) return;
             
-            // 30% elimination for all rounds
+            // FIXED ELIMINATION SYSTEM: Always eliminate exactly 30% (rounded down), minimum 1
             const eliminationPercentage = 0.3;
-            
-            // Calculate number of teams to eliminate (minimum 1 if percentage results in 0)
             let teamsToEliminateCount = Math.floor(activeTeams.length * eliminationPercentage);
             
             // Ensure at least 1 team is eliminated if we have more than 2 teams
@@ -2071,9 +2162,13 @@
             
             if (teamsToEliminateCount === 0) return;
             
-            // Sort teams by multiple criteria for fair elimination
+            console.log(`🔍 ELIMINATION DEBUG - Round ${gameState.currentRound}:`);
+            console.log(`Active teams: ${activeTeams.length}`);
+            console.log(`Teams to eliminate: ${teamsToEliminateCount} (${eliminationPercentage * 100}%)`);
+            
+            // Sort teams by score (ASCENDING - lowest scores first for elimination)
             const sortedTeams = [...activeTeams].sort((a, b) => {
-                // Primary: Score (ascending - lowest first)
+                // Primary: Score (ascending - lowest first for elimination)
                 if (a.score !== b.score) {
                     return a.score - b.score;
                 }
@@ -2094,23 +2189,28 @@
                 return Math.random() - 0.5;
             });
             
-            // Find the elimination threshold score
-            const eliminationThresholdScore = sortedTeams[teamsToEliminateCount - 1].score;
+            console.log('📊 Team scores (sorted for elimination):');
+            sortedTeams.forEach((team, index) => {
+                console.log(`${index + 1}. ${team.name}: ${team.score} points (${team.totalCorrect}/${team.totalAnswered} correct)`);
+            });
             
-            // Get all teams with scores at or below the threshold
-            const candidatesForElimination = sortedTeams.filter(team => team.score <= eliminationThresholdScore);
+            // SIMPLE ELIMINATION: Take the first N teams from sorted list (lowest scores)
+            const teamsToEliminate = sortedTeams.slice(0, teamsToEliminateCount);
             
-            // If we have more candidates than needed due to ties, use additional criteria
-            let teamsToEliminate;
-            if (candidatesForElimination.length > teamsToEliminateCount) {
-                // Use the sorted order (which includes tiebreakers) to select exactly the number needed
-                teamsToEliminate = sortedTeams.slice(0, teamsToEliminateCount);
-                
-                // Store tie information for display
+            console.log('❌ Teams to be eliminated:');
+            teamsToEliminate.forEach(team => {
+                console.log(`- ${team.name}: ${team.score} points`);
+            });
+            
+            // Check for ties at elimination boundary
+            const eliminationThresholdScore = teamsToEliminate[teamsToEliminate.length - 1].score;
+            const teamsWithSameScore = sortedTeams.filter(team => team.score === eliminationThresholdScore);
+            
+            if (teamsWithSameScore.length > 1) {
                 gameState.lastEliminationHadTies = true;
-                gameState.lastEliminationTieInfo = `${candidatesForElimination.length} tim memiliki skor ${eliminationThresholdScore}. Eliminasi ditentukan berdasarkan: jumlah jawaban benar, tingkat akurasi, dan undian acak.`;
+                gameState.lastEliminationTieInfo = `${teamsWithSameScore.length} tim memiliki skor ${eliminationThresholdScore}. Eliminasi ditentukan berdasarkan: jumlah jawaban benar, tingkat akurasi, dan undian acak.`;
+                console.log(`⚖️ Tie detected: ${teamsWithSameScore.length} teams with score ${eliminationThresholdScore}`);
             } else {
-                teamsToEliminate = candidatesForElimination;
                 gameState.lastEliminationHadTies = false;
             }
             
@@ -2119,16 +2219,20 @@
                 team.eliminated = true;
                 gameState.eliminatedTeams.push(team.name);
                 gameState.tournamentStats.eliminatedInRound[gameState.currentRound - 1]++;
+                console.log(`🚫 Eliminated: ${team.name} (${team.score} points)`);
             });
             
             // Store info for display
             gameState.lastEliminationCount = teamsToEliminate.length;
             gameState.lastEliminationPercentage = eliminationPercentage * 100;
             
-            console.log(`Round ${gameState.currentRound}: Eliminated ${teamsToEliminate.length} teams. Active teams remaining: ${activeTeams.length - teamsToEliminate.length}`);
+            const remainingTeams = activeTeams.length - teamsToEliminate.length;
+            console.log(`✅ Round ${gameState.currentRound} elimination complete:`);
+            console.log(`- Eliminated: ${teamsToEliminate.length} teams`);
+            console.log(`- Remaining: ${remainingTeams} teams`);
             
             if (gameState.lastEliminationHadTies) {
-                console.log(`Tie-breaking applied: ${gameState.lastEliminationTieInfo}`);
+                console.log(`- Tie-breaking: ${gameState.lastEliminationTieInfo}`);
             }
         }
 
@@ -2321,7 +2425,7 @@
             if (gameState.superFinalNeeded) {
                 winnerText = `🎉 ${winner.name} Juara Super Final! 🎉`;
             } else {
-                winnerText = `🎉 ${winner.name} Juara Adu Kecerdasan! 🎉`;
+                winnerText = `🎉 ${winner.name} Juara Tournament! 🎉`;
             }
 
             document.getElementById('winnerAnnouncement').textContent = winnerText;
@@ -2473,20 +2577,40 @@
             XLSX.writeFile(wb, "Template_Soal_Quiz_Battle.xlsx");
             
             // Show instructions
-            alert('📋 Template berhasil didownload!\n\n' +
-                  '📝 Petunjuk pengisian (FLEKSIBEL):\n\n' +
-                  '• Babak: penyisihan/mudah/1, semifinal/sedang/2, final/sulit/3, superfinal/4\n' +
-                  '• Kategori: BEBAS! (contoh: Surat Al-Ashr, Tajwid, Fiqih, dll)\n' +
-                  '• Soal: Tulis pertanyaan lengkap\n' +
-                  '• Pilihan A-D: Tulis semua pilihan jawaban\n' +
-                  '• Jawaban Benar: A, B, C, atau D\n' +
-                  '• Poin: Angka 1-100 (otomatis disesuaikan jika kosong)\n' +
-                  '• Penjelasan: Opsional, jelaskan jawaban\n\n' +
-                  '🎯 SISTEM PINTAR:\n' +
-                  '✅ Otomatis menerima nama kategori apa saja\n' +
-                  '✅ Otomatis memperbaiki format babak\n' +
-                  '✅ Otomatis mengatur poin jika tidak valid\n\n' +
-                  '💡 Tip: Isi minimal 10 soal per babak untuk hasil terbaik!');
+            Swal.fire({
+                icon: 'success',
+                title: '📋 Template Berhasil Didownload!',
+                html: `
+                    <div class="text-left">
+                        <h4 class="font-bold text-lg mb-3">📝 Petunjuk Pengisian (FLEKSIBEL):</h4>
+                        <ul class="mb-4 space-y-1 text-sm">
+                            <li>• <strong>Babak:</strong> penyisihan/mudah/1, semifinal/sedang/2, final/sulit/3, superfinal/4</li>
+                            <li>• <strong>Kategori:</strong> BEBAS! (contoh: Surat Al-Ashr, Tajwid, Fiqih, dll)</li>
+                            <li>• <strong>Soal:</strong> Tulis pertanyaan lengkap</li>
+                            <li>• <strong>Pilihan A-D:</strong> Tulis semua pilihan jawaban</li>
+                            <li>• <strong>Jawaban Benar:</strong> A, B, C, atau D</li>
+                            <li>• <strong>Poin:</strong> Angka 1-100 (otomatis disesuaikan jika kosong)</li>
+                            <li>• <strong>Penjelasan:</strong> Opsional, jelaskan jawaban</li>
+                        </ul>
+                        
+                        <div class="bg-blue-50 p-3 rounded-lg mb-4">
+                            <h4 class="font-bold text-blue-800 mb-2">🎯 SISTEM PINTAR:</h4>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li>✅ Otomatis menerima nama kategori apa saja</li>
+                                <li>✅ Otomatis memperbaiki format babak</li>
+                                <li>✅ Otomatis mengatur poin jika tidak valid</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-green-800 font-medium">💡 Tip: Isi minimal 10 soal per babak untuk hasil terbaik!</p>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Mengerti!',
+                confirmButtonColor: '#10b981',
+                width: '700px'
+            });
         }
 
         function downloadSampleQuestions() {
@@ -2526,8 +2650,13 @@
 
             XLSX.writeFile(wb, "Contoh_Soal_Akidah_Akhlak.xlsx");
             
-            alert('📖 Contoh soal berhasil didownload!\n\n' +
-                  'File ini berisi contoh soal Akidah Akhlak yang bisa Anda gunakan sebagai referensi untuk membuat soal mata pelajaran lain.');
+            Swal.fire({
+                icon: 'success',
+                title: '📖 Contoh Soal Berhasil Didownload!',
+                text: 'File ini berisi contoh soal Akidah Akhlak yang bisa Anda gunakan sebagai referensi untuk membuat soal mata pelajaran lain.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3b82f6'
+            });
         }
 
         function handleFileUpload(event) {
@@ -2801,19 +2930,40 @@
             contentDiv.textContent = previewContent;
         }
 
-        function clearAllData() {
-            const confirmClear = confirm('🗑️ HAPUS SEMUA DATA?\n\n' +
-                                       'Ini akan menghapus:\n' +
-                                       '• Pengaturan game tersimpan\n' +
-                                       '• Soal import tersimpan\n' +
-                                       '• Game yang sedang berlangsung\n\n' +
-                                       '⚠️ Tindakan ini tidak dapat dibatalkan!\n\n' +
-                                       'Lanjutkan?');
+        async function clearAllData() {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '🗑️ Hapus Semua Data?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-4">Ini akan menghapus:</p>
+                        <ul class="mb-4 space-y-1">
+                            <li>• Pengaturan game tersimpan</li>
+                            <li>• Soal import tersimpan</li>
+                            <li>• Game yang sedang berlangsung</li>
+                        </ul>
+                        <div class="bg-red-50 p-3 rounded-lg">
+                            <p class="text-red-800 font-bold">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '🗑️ Ya, Hapus Semua',
+                cancelButtonText: '❌ Batal',
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280'
+            });
             
-            if (confirmClear) {
+            if (result.isConfirmed) {
                 clearLocalStorage();
                 resetGame();
-                alert('✅ Semua data berhasil dihapus!\n\nAnda dapat memulai dengan pengaturan baru.');
+                Swal.fire({
+                    icon: 'success',
+                    title: '✅ Data Berhasil Dihapus!',
+                    text: 'Anda dapat memulai dengan pengaturan baru.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#10b981'
+                });
             }
         }
 
@@ -2886,5 +3036,5 @@
             localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9729ac2e222cb486',t:'MTc1NTc3NDUwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9729eff33325ff95',t:'MTc1NTc3NzI4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
