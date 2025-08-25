@@ -2079,71 +2079,72 @@
             }
         }
 
-        function finishRound() {
-            // Save round scores
-            gameState.teams.forEach((team, index) => {
-                if (!team.eliminated) {
-                    team.roundScores[gameState.currentRound - 1] = team.score;
-                }
-            });
+function finishRound() {
+    // Save round scores
+    gameState.teams.forEach((team, index) => {
+        if (!team.eliminated) {
+            team.roundScores[gameState.currentRound - 1] = team.score;
+        }
+    });
+    
+    // Check if tournament is finished or if Super Final is needed
+    if (gameState.currentRound >= gameState.maxRounds) {
+        // Check for tie in Final round - FIXED LOGIC
+        const activeTeams = gameState.teams.filter(team => !team.eliminated);
+        
+        // Only check for tie if we're in the final round (round 3)
+        if (gameState.currentRound === 3 && activeTeams.length > 1) {
+            const sortedTeams = [...activeTeams].sort((a, b) => b.score - a.score);
+            const topScore = sortedTeams[0].score;
+            const tiedTeams = sortedTeams.filter(team => team.score === topScore);
             
-            // Check if tournament is finished or if Super Final is needed
-            if (gameState.currentRound >= gameState.maxRounds) {
-                // Check for tie in Final round
-                const activeTeams = gameState.teams.filter(team => !team.eliminated);
-                if (activeTeams.length > 1 && gameState.currentRound === 3) {
-                    const sortedTeams = [...activeTeams].sort((a, b) => b.score - a.score);
-                    const topScore = sortedTeams[0].score;
-                    const tiedTeams = sortedTeams.filter(team => team.score === topScore);
-                    
-                    if (tiedTeams.length > 1) {
-                        // Need Super Final
-                        gameState.superFinalNeeded = true;
-                        gameState.currentRound = 4; // Super Final
-                        gameState.maxRounds = 4;
-                        gameState.roundNames.push('SUPER FINAL');
-                        gameState.roundDescriptions.push('5 Soal Ultimate (50 Poin)');
-                        gameState.questionsPerRound.push(5);
-                        
-                        Swal.fire({
-                            icon: 'warning',
-                            title: '🔥 SKOR SERI!',
-                            html: `
-                                <div class="text-center">
-                                    <p class="text-lg mb-4">Super Final akan dimulai untuk menentukan juara!</p>
-                                    <div class="bg-yellow-50 p-4 rounded-lg mb-4">
-                                        <p class="font-bold text-yellow-800">👑 5 Soal Ultimate (50 poin)</p>
-                                        <p class="text-yellow-700">⚡ Hanya tim yang seri yang akan bertanding!</p>
-                                    </div>
-                                </div>
-                            `,
-                            confirmButtonText: 'Lanjut ke Super Final!',
-                            confirmButtonColor: '#f59e0b'
-                        });
-                        
-                        // Eliminate non-tied teams
-                        gameState.teams.forEach(team => {
-                            if (!tiedTeams.includes(team)) {
-                                team.eliminated = true;
-                            }
-                        });
-                        
-                        showRoundTransition();
-                        return;
-                    }
-                }
+            if (tiedTeams.length > 1) {
+                // Need Super Final
+                gameState.superFinalNeeded = true;
+                gameState.maxRounds = 4; // Extend to include Super Final
                 
-                showResults();
+                Swal.fire({
+                    icon: 'warning',
+                    title: '🔥 SKOR SERI!',
+                    html: `
+                        <div class="text-center">
+                            <p class="text-lg mb-4">Super Final akan dimulai untuk menentukan juara!</p>
+                            <div class="bg-yellow-50 p-4 rounded-lg mb-4">
+                                <p class="font-bold text-yellow-800">👑 5 Soal Ultimate (50 poin)</p>
+                                <p class="text-yellow-700">⚡ Hanya tim yang seri yang akan bertanding!</p>
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Lanjut ke Super Final!',
+                    confirmButtonColor: '#f59e0b'
+                }).then(() => {
+                    // Eliminate non-tied teams
+                    gameState.teams.forEach(team => {
+                        if (!tiedTeams.some(t => t.name === team.name)) {
+                            team.eliminated = true;
+                        }
+                    });
+                    
+                    // Move to Super Final round
+                    gameState.currentRound = 4;
+                    startRound();
+                });
                 return;
             }
-            
-            // Determine eliminations using 30% threshold
-            if (gameState.currentRound < gameState.maxRounds) {
-                eliminateTeamsWithThreshold();
-            }
-            
-            showRoundTransition();
         }
+        
+        showResults();
+        return;
+    }
+    
+    // Determine eliminations using 30% threshold
+    if (gameState.currentRound < gameState.maxRounds) {
+        eliminateTeamsWithThreshold();
+    }
+    
+    showRoundTransition();
+}
+
 
         function eliminateTeamsWithThreshold() {
             const activeTeams = gameState.teams.filter(team => !team.eliminated);
@@ -2236,46 +2237,66 @@
             }
         }
 
-        function showRoundTransition() {
-            const modal = document.getElementById('roundTransitionModal');
-            const roundIndex = gameState.currentRound - 1;
-            
-            const emojis = ['🎯', '⚡', '🔥', '👑'];
-            const titles = [
-                'BABAK PENYISIHAN SELESAI!',
-                'SEMIFINAL SELESAI!', 
-                'FINAL SELESAI!',
-                'SUPER FINAL SELESAI!'
-            ];
-            
-            document.getElementById('transitionEmoji').textContent = emojis[roundIndex];
-            document.getElementById('transitionTitle').textContent = titles[roundIndex];
-            
-            if (gameState.currentRound < gameState.maxRounds) {
-                const nextRoundName = gameState.currentRound === 3 && gameState.superFinalNeeded ? 'SUPER FINAL' : gameState.roundNames[gameState.currentRound];
-                document.getElementById('transitionDescription').textContent = 
-                    `Bersiap untuk ${nextRoundName}!`;
-            } else {
-                document.getElementById('transitionDescription').textContent = 
-                    'Selamat kepada semua peserta!';
-            }
-            
-            // Update tournament progress in modal
-            updateModalTournamentProgress();
-            
-            showRoundResults();
-            showEliminationNotices();
-            
-            const continueBtn = document.getElementById('continueToNextRound');
-            if (gameState.currentRound >= gameState.maxRounds) {
-                continueBtn.textContent = '🏆 Lihat Hasil Akhir';
-            } else {
-                const nextRoundName = gameState.currentRound === 3 && gameState.superFinalNeeded ? 'SUPER FINAL' : gameState.roundNames[gameState.currentRound];
-                continueBtn.textContent = `🚀 Lanjut ke ${nextRoundName}`;
-            }
-            
-            modal.classList.remove('hidden');
+function showRoundTransition() {
+    const modal = document.getElementById('roundTransitionModal');
+    const roundIndex = gameState.currentRound - 1;
+    
+    const emojis = ['🎯', '⚡', '🔥', '👑'];
+    const titles = [
+        'BABAK PENYISIHAN SELESAI!',
+        'SEMIFINAL SELESAI!', 
+        'FINAL SELESAI!',
+        'SUPER FINAL SELESAI!'
+    ];
+    
+    // Determine the correct display index
+    let displayRoundIndex = roundIndex;
+    if (gameState.currentRound === 4 || gameState.superFinalNeeded) {
+        displayRoundIndex = 3; // Use Super Final index
+    }
+    
+    document.getElementById('transitionEmoji').textContent = emojis[displayRoundIndex];
+    document.getElementById('transitionTitle').textContent = titles[displayRoundIndex];
+    
+    if (gameState.currentRound < gameState.maxRounds || gameState.superFinalNeeded) {
+        let nextRoundName = '';
+        if (gameState.superFinalNeeded) {
+            nextRoundName = 'SUPER FINAL';
+        } else if (gameState.currentRound < 3) {
+            nextRoundName = gameState.roundNames[gameState.currentRound];
+        } else {
+            nextRoundName = 'HASIL AKHIR';
         }
+        document.getElementById('transitionDescription').textContent = 
+            `Bersiap untuk ${nextRoundName}!`;
+    } else {
+        document.getElementById('transitionDescription').textContent = 
+            'Selamat kepada semua peserta!';
+    }
+    
+    // Update tournament progress in modal
+    updateModalTournamentProgress();
+    
+    showRoundResults();
+    showEliminationNotices();
+    
+    const continueBtn = document.getElementById('continueToNextRound');
+    if (gameState.currentRound >= gameState.maxRounds && !gameState.superFinalNeeded) {
+        continueBtn.textContent = '🏆 Lihat Hasil Akhir';
+    } else {
+        let nextRoundName = '';
+        if (gameState.superFinalNeeded) {
+            nextRoundName = 'SUPER FINAL';
+        } else if (gameState.currentRound < 3) {
+            nextRoundName = gameState.roundNames[gameState.currentRound];
+        } else {
+            nextRoundName = 'HASIL AKHIR';
+        }
+        continueBtn.textContent = `🚀 Lanjut ke ${nextRoundName}`;
+    }
+    
+    modal.classList.remove('hidden');
+}
 
         function showRoundResults() {
             const roundScoreBoard = document.getElementById('roundScoreBoard');
@@ -2347,16 +2368,22 @@
             ).join(', ');
         }
 
-        function continueToNextRound() {
-            document.getElementById('roundTransitionModal').classList.add('hidden');
-            
-            if (gameState.currentRound >= gameState.maxRounds) {
-                showResults();
-            } else {
-                gameState.currentRound++;
-                startRound();
-            }
+function continueToNextRound() {
+    document.getElementById('roundTransitionModal').classList.add('hidden');
+    
+    if (gameState.currentRound >= gameState.maxRounds && !gameState.superFinalNeeded) {
+        showResults();
+    } else {
+        // FIXED: Properly handle round progression
+        if (gameState.superFinalNeeded && gameState.currentRound === 3) {
+            gameState.currentRound = 4; // Skip to Super Final
+        } else {
+            gameState.currentRound++;
         }
+        startRound();
+    }
+}
+
 
         function createFireworks() {
             const fireworksContainer = document.createElement('div');
